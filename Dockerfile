@@ -1,5 +1,5 @@
-### Dockerfile for guacamole
-### Includes the mysql authentication module preinstalled
+### Dockerfile for Guacamole
+### Includes the MySQL authentication module preinstalled
 
 ARG GUAC_VER=1.5.5
 
@@ -10,7 +10,6 @@ FROM guacamole/guacd:${GUAC_VER} AS server
 ########################
 ### Get Guacamole Client
 FROM guacamole/guacamole:${GUAC_VER} AS client
-
 
 ####################
 ### Build Main Image
@@ -59,32 +58,30 @@ ARG RUNTIME_DEPENDENCIES="  \
 ADD image /
 
 ### Install packages and clean up in one command to reduce build size
-
-RUN apk add --no-cache ${RUNTIME_DEPENDENCIES}                                                                                                                                      && \
-    xargs apk add --no-cache < ${PREFIX_DIR}/DEPENDENCIES                                                                                                                           && \
-    adduser -h /config -s /bin/nologin -u 99 -D abc                                                                                                                                 && \
-    adduser -h /opt/tomcat -s /bin/false -D tomcat                                                                                                                                  && \
-    TOMCAT_VERSION=$(wget -qO- https://archive.apache.org/dist/tomcat/tomcat-8/ | grep "8\.5\.[0-9]\+</a>" | sed -e 's|.*>\(.*\)<.*|\1|g')                                                 && \
-    wget https://dlcdn.apache.org/tomcat/tomcat-8/v"$TOMCAT_VERSION"/bin/apache-tomcat-"$TOMCAT_VERSION".tar.gz                                                                     && \
-    tar -xf apache-tomcat-"$TOMCAT_VERSION".tar.gz                                                                                                                                  && \
-    mv apache-tomcat-"$TOMCAT_VERSION"/* /opt/tomcat                                                                                                                                && \
-    rmdir apache-tomcat-"$TOMCAT_VERSION"                                                                                                                                           && \
-    find /opt/tomcat -type d -print0 | xargs -0 chmod 700                                                                                                                           && \
-    chmod +x /opt/tomcat/bin/*.sh                                                                                                                                                   && \
-    mkdir -p /var/lib/tomcat/webapps /var/log/tomcat                                                                                                                                && \
-    ln -s ${PREFIX_DIR}/guacamole.war /var/lib/tomcat/webapps/ROOT.war                                                                                                              && \
-    chmod +x /etc/firstrun/*.sh                                                                                                                                                     && \
-    mkdir -p /config/guacamole /config/log/tomcat /var/lib/tomcat/temp /var/run/tomcat                                                                                              && \
-    ln -s /opt/tomcat/conf /var/lib/tomcat/conf                                                                                                                                     && \
-    ln -s /config/log/tomcat /var/lib/tomcat/logs                                                                                                                                   && \
-    sed -i '/<\/Host>/i \        <Valve className=\"org.apache.catalina.valves.RemoteIpValve\"\n               remoteIpHeader=\"x-forwarded-for\" />' /opt/tomcat/conf/server.xml
+RUN apk add --no-cache ${RUNTIME_DEPENDENCIES} \
+    && xargs apk add --no-cache < ${PREFIX_DIR}/DEPENDENCIES \
+    && adduser -h /config -s /bin/nologin -u 99 -D abc \
+    && adduser -h /opt/tomcat -s /bin/false -D tomcat \
+    && TOMCAT_VERSION=8.5.93 \
+    && wget https://archive.apache.org/dist/tomcat/tomcat-8/v"$TOMCAT_VERSION"/bin/apache-tomcat-"$TOMCAT_VERSION".tar.gz \
+    && tar -xf apache-tomcat-"$TOMCAT_VERSION".tar.gz \
+    && mv apache-tomcat-"$TOMCAT_VERSION"/* /opt/tomcat \
+    && rmdir apache-tomcat-"$TOMCAT_VERSION" \
+    && find /opt/tomcat -type d -print0 | xargs -0 chmod 700 \
+    && chmod +x /opt/tomcat/bin/*.sh \
+    && mkdir -p /var/lib/tomcat/webapps /var/log/tomcat \
+    && ln -s ${PREFIX_DIR}/guacamole.war /var/lib/tomcat/webapps/ROOT.war \
+    && chmod +x /etc/firstrun/*.sh \
+    && mkdir -p /config/guacamole /config/log/tomcat /var/lib/tomcat/temp /var/run/tomcat \
+    && ln -s /opt/tomcat/conf /var/lib/tomcat/conf \
+    && ln -s /config/log/tomcat /var/lib/tomcat/logs \
+    && sed -i '/<\/Host>/i \        <Valve className=\"org.apache.catalina.valves.RemoteIpValve\"\n               remoteIpHeader=\"x-forwarded-for\" />' /opt/tomcat/conf/server.xml
 
 EXPOSE 8080
 
 VOLUME ["/config"]
 
 CMD [ "/etc/firstrun/firstrun.sh" ]
-
 
 ############################
 ### Build image with MariaDB 
